@@ -11,6 +11,11 @@ let userLocation = null;
 let userMarker = null;
 let routingControl = null;
 let parkingMarkers = [];
+let selectedLocation = null;
+let isNavigating = false;
+let watchPositionId = null;
+let currentRoute = null;
+let navigationUI = null;
 
 // Tilburg Central Station coordinates (default location)
 const TILBURG_CENTRAL_STATION = [51.5653, 5.0913];
@@ -109,11 +114,10 @@ function addParkingLocations() {
             offset: [0, -10]
         });
 
-        // Add click event for routing
+        // Add click event to show navigation prompt
         marker.on('click', function() {
-            if (userLocation) {
-                showRoute(userLocation, [location.lat, location.lng]);
-            }
+            selectedLocation = location;
+            showNavigationPrompt(location);
         });
 
         parkingMarkers.push({
@@ -171,10 +175,18 @@ function showRoute(start, end) {
         if (routingContainer) {
             routingContainer.style.left = '20px';
             routingContainer.style.right = 'auto';
-            routingContainer.style.top = '50%';
-            routingContainer.style.transform = 'translateY(-50%)';
+            if (!isNavigating) {
+                routingContainer.style.top = '50%';
+                routingContainer.style.transform = 'translateY(-50%)';
+            } else {
+                routingContainer.style.top = '250px';
+                routingContainer.style.transform = 'none';
+            }
         }
-    }, 100);
+        
+        // Setup route listener
+        setupRouteListener();
+    }, 200);
 }
 
 // Search functionality with real-time feedback
@@ -294,6 +306,198 @@ window.addEventListener('click', function(event) {
     if (event.target.classList.contains('modal')) {
         event.target.classList.remove('show');
     }
+});
+
+// Navigation prompt functionality
+function showNavigationPrompt(location) {
+    const navModal = document.getElementById('navigationModal');
+    const navLocationName = document.getElementById('navLocationName');
+    const navLocationDetails = document.getElementById('navLocationDetails');
+    
+    navLocationName.textContent = location.name;
+    navLocationDetails.innerHTML = `
+        <p><strong>Address:</strong> ${location.address}</p>
+        <p><strong>Capacity:</strong> ${location.capacity} bikes</p>
+        <p><strong>Cost:</strong> ${location.cost}</p>
+        <p><strong>Type:</strong> ${location.type}</p>
+    `;
+    
+    navModal.classList.add('show');
+}
+
+// Start live navigation
+function startNavigation() {
+    if (!selectedLocation || !userLocation) {
+        alert('Location not available. Please allow location access.');
+        return;
+    }
+
+    isNavigating = true;
+    const navModal = document.getElementById('navigationModal');
+    navModal.classList.remove('show');
+    
+    // Show navigation UI
+    navigationUI = document.getElementById('navigationUI');
+    navigationUI.classList.remove('hidden');
+    document.getElementById('navDestinationName').textContent = selectedLocation.name;
+    
+    // Show initial route
+    showRoute(userLocation, [selectedLocation.lat, selectedLocation.lng]);
+    
+    // Setup route listener
+    setTimeout(() => {
+        setupRouteListener();
+        updateRouteInfo();
+    }, 500);
+    
+    // Start watching position for live updates
+    if (navigator.geolocation) {
+        watchPositionId = navigator.geolocation.watchPosition(
+            function(position) {
+                const newLocation = [position.coords.latitude, position.coords.longitude];
+                updateNavigation(newLocation);
+            },
+            function(error) {
+                console.error('Navigation position error:', error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+    }
+    
+    // Update route periodically
+    updateRouteInfo();
+}
+
+// Update navigation with new position
+function updateNavigation(newLocation) {
+    if (!isNavigating || !selectedLocation) return;
+    
+    userLocation = newLocation;
+    
+    // Update user marker position
+    if (userMarker) {
+        userMarker.setLatLng(newLocation);
+    } else {
+        userMarker = L.marker(newLocation, {
+            icon: L.divIcon({
+                className: 'user-marker',
+                html: '<div style="background: #667eea; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+                iconSize: [20, 20]
+            })
+        }).addTo(map);
+    }
+    
+    // Keep map centered on user during navigation
+    map.setView(newLocation, 16);
+    
+    // Update route
+    showRoute(newLocation, [selectedLocation.lat, selectedLocation.lng]);
+    
+    // Update navigation info
+    updateRouteInfo();
+}
+
+// Update route information
+function updateRouteInfo() {
+    if (!routingControl || !isNavigating) return;
+    
+    // Get route data from routing control
+    if (routingControl._router && routingControl._router._routes) {
+        const routes = routingControl._router._routes;
+        if (routes && routes.length > 0) {
+            const route = routes[0];
+            if (route.summary) {
+                const distance = (route.summary.totalDistance / 1000).toFixed(1); // Convert to km
+                const time = Math.round(route.summary.totalTime / 60); // Convert to minutes
+                
+                document.getElementById('navDistance').textContent = `${distance} km`;
+                document.getElementById('navTime').textContent = `${time} min`;
+            }
+            
+            // Get current instruction
+            if (route.instructions && route.instructions.length > 0) {
+                const currentInstruction = route.instructions[0];
+                document.getElementById('navInstructionText').textContent = currentInstruction.text || 'Follow the route';
+                
+                // Show next instruction if available
+                if (route.instructions.length > 1) {
+                    document.getElementById('navNextInstruction').textContent = 
+                        `Next: ${route.instructions[1].text || ''}`;
+                } else {
+                    document.getElementById('navNextInstruction').textContent = 'Arriving at destination';
+                }
+            }
+        }
+    }
+}
+
+// Listen for route updates
+function setupRouteListener() {
+    if (routingControl) {
+        routingControl.on('routesfound', function(e) {
+            if (isNavigating && e.routes && e.routes.length > 0) {
+                const route = e.routes[0];
+                const distance = (route.summary.totalDistance / 1000).toFixed(1);
+                const time = Math.round(route.summary.totalTime / 60);
+                
+                document.getElementById('navDistance').textContent = `${distance} km`;
+                document.getElementById('navTime').textContent = `${time} min`;
+                
+                if (route.instructions && route.instructions.length > 0) {
+                    document.getElementById('navInstructionText').textContent = 
+                        route.instructions[0].text || 'Follow the route';
+                    
+                    if (route.instructions.length > 1) {
+                        document.getElementById('navNextInstruction').textContent = 
+                            `Next: ${route.instructions[1].text || ''}`;
+                    } else {
+                        document.getElementById('navNextInstruction').textContent = 'Arriving at destination';
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Stop navigation
+function stopNavigation() {
+    isNavigating = false;
+    
+    if (watchPositionId !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchPositionId);
+        watchPositionId = null;
+    }
+    
+    if (navigationUI) {
+        navigationUI.classList.add('hidden');
+    }
+    
+    if (routingControl) {
+        map.removeControl(routingControl);
+        routingControl = null;
+    }
+    
+    selectedLocation = null;
+}
+
+// Navigation modal event handlers
+document.getElementById('startNavBtn').addEventListener('click', startNavigation);
+document.getElementById('cancelNavBtn').addEventListener('click', function() {
+    document.getElementById('navigationModal').classList.remove('show');
+    selectedLocation = null;
+});
+document.getElementById('stopNavBtn').addEventListener('click', stopNavigation);
+
+// Close navigation modal when clicking X
+document.querySelectorAll('#navigationModal .close').forEach(closeBtn => {
+    closeBtn.addEventListener('click', function() {
+        document.getElementById('navigationModal').classList.remove('show');
+        selectedLocation = null;
+    });
 });
 
 // Initialize parking locations
