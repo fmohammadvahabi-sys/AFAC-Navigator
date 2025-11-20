@@ -85,6 +85,43 @@
     <!-- Search Feedback -->
     <div id="searchFeedback" class="search-feedback hidden"></div>
 
+    <!-- Navigation Prompt Modal -->
+    <div id="navigationModal" class="modal">
+      <div class="modal-content navigation-modal">
+        <span class="close">&times;</span>
+        <h2 id="navLocationName">Start Navigation</h2>
+        <div id="navLocationDetails" class="nav-location-details"></div>
+        <div class="nav-buttons">
+          <button class="btn btn-primary" id="startNavBtn">
+            Start Navigation
+          </button>
+          <button class="btn btn-secondary" id="cancelNavBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Navigation UI -->
+    <div id="navigationUI" class="navigation-ui hidden">
+      <div class="nav-header">
+        <h3 id="navDestinationName">Navigation Active</h3>
+        <button class="nav-close-btn" id="stopNavBtn">✕</button>
+      </div>
+      <div class="nav-info">
+        <div class="nav-distance">
+          <span class="nav-label">Distance</span>
+          <span id="navDistance">--</span>
+        </div>
+        <div class="nav-time">
+          <span class="nav-label">ETA</span>
+          <span id="navTime">--</span>
+        </div>
+      </div>
+      <div class="nav-instruction">
+        <div id="navInstructionText">Follow the route</div>
+        <div id="navNextInstruction" class="nav-next"></div>
+      </div>
+    </div>
+
     <!-- Modals -->
     <div id="rulesModal" class="modal">
       <div class="modal-content">
