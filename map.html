@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AFAC Bike Parking Map - Tilburg</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="styles/map.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="app-logo">🚲</div>
+        <h1 class="app-name">AFAC Bike Parking</h1>
+      </div>
+
+      <div class="header-right">
+        <button class="icon-btn" id="rulesBtn" title="AFAC Rules">
+          <span class="icon">📋</span>
+        </button>
+        <button class="icon-btn" id="helpBtn" title="Help">
+          <span class="icon">❓</span>
+        </button>
+        <button class="icon-btn" id="logoutBtn" title="Logout">
+          <span class="icon">🚪</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search for bike parking locations in Tilburg..."
+      />
+      <button class="search-btn" id="searchBtn">🔍</button>
+    </div>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <h3>Location Types</h3>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #4caf50"></div>
+        <span>Free Parking</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #ff9800"></div>
+        <span>Paid Parking</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #2196f3"></div>
+        <span>Covered Parking</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #9c27b0"></div>
+        <span>Secure Parking</span>
+      </div>
+    </div>
+
+    <!-- Location Permission Modal -->
+    <div id="locationModal" class="modal show">
+      <div class="modal-content location-modal">
+        <h2>Location Access</h2>
+        <p>
+          Would you like to allow location access to show your current position
+          on the map?
+        </p>
+        <div class="location-buttons">
+          <button class="btn btn-primary" id="allowLocationBtn">Allow</button>
+          <button class="btn btn-secondary" id="skipLocationBtn">
+            Skip for Now
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Feedback -->
+    <div id="searchFeedback" class="search-feedback hidden"></div>
+
+    <!-- Modals -->
+    <div id="rulesModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>AFAC Rules Explained</h2>
+        <div class="rules-explanation">
+          <div class="rule-section">
+            <h3>1. Safety Standards</h3>
+            <p>
+              All bike parking facilities must provide secure, well-lit areas
+              with proper surveillance and protection from weather.
+            </p>
+          </div>
+          <div class="rule-section">
+            <h3>2. Accessibility Requirements</h3>
+            <p>
+              Facilities must be easily accessible for all users, including
+              wheelchair users, with clear signage and pathways.
+            </p>
+          </div>
+          <div class="rule-section">
+            <h3>3. Capacity Guidelines</h3>
+            <p>
+              Minimum capacity standards ensure adequate space based on location
+              demand and usage patterns.
+            </p>
+          </div>
+          <div class="rule-section">
+            <h3>4. Maintenance Protocols</h3>
+            <p>
+              Regular inspections and maintenance ensure facilities remain
+              clean, functional, and safe for users.
+            </p>
+          </div>
+          <div class="rule-section">
+            <h3>5. Cost Regulations</h3>
+            <p>
+              Pricing must be transparent and reasonable, with clear information
+              about fees and payment methods.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="helpModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>How to Use This App</h2>
+        <div class="help-steps">
+          <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+              <h3>Allow Location Access</h3>
+              <p>
+                When prompted, allow the app to access your current location to
+                show your position on the map.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+              <h3>Explore the Map</h3>
+              <p>
+                Use zoom controls or mouse wheel to zoom in/out. Pan by clicking
+                and dragging the map.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+              <h3>View Parking Locations</h3>
+              <p>
+                Hover over bike icons to see location details: address,
+                capacity, and cost.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">4</span>
+            <div class="step-content">
+              <h3>Search Locations</h3>
+              <p>
+                Use the search bar to find specific bike parking locations by
+                name or address.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="step-number">5</span>
+            <div class="step-content">
+              <h3>Get Directions</h3>
+              <p>
+                Click on any bike parking icon to see the route from your
+                current location with a blue line.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"
+    />
+    <script src="data/parking-locations.js"></script>
+    <script src="scripts/map.js"></script>
+  </body>
+</html>
