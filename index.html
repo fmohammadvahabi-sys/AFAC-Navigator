@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AFAC Bike Parking - Tilburg</title>
+    <link rel="stylesheet" href="styles/landing.css" />
+  </head>
+  <body>
+    <div class="landing-container">
+      <div class="landing-content">
+        <div class="logo-section">
+          <div class="bike-icon">🚲</div>
+          <h1>AFAC Bike Parking</h1>
+          <p class="subtitle">Navigate to Bike Parking Locations in Tilburg</p>
+        </div>
+
+        <div class="description-section">
+          <h2>About AFAC Rules</h2>
+          <div class="rules-content">
+            <p>
+              The AFAC (Algemene Fietsenstallingen Afspraken Code) rules
+              establish standards for bicycle parking facilities in the
+              Netherlands, ensuring safe, accessible, and well-maintained
+              parking spaces for cyclists.
+            </p>
+            <div class="rules-list">
+              <div class="rule-item">
+                <strong>Safety First:</strong> All parking locations must
+                provide secure and well-lit areas for bicycles.
+              </div>
+              <div class="rule-item">
+                <strong>Accessibility:</strong> Facilities must be easily
+                accessible for all users, including those with disabilities.
+              </div>
+              <div class="rule-item">
+                <strong>Capacity Standards:</strong> Locations must meet minimum
+                capacity requirements based on demand.
+              </div>
+              <div class="rule-item">
+                <strong>Maintenance:</strong> Regular upkeep and monitoring
+                ensure facilities remain in good condition.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-section">
+          <div class="auth-buttons">
+            <button class="btn btn-primary" onclick="showLogin()">Login</button>
+            <button class="btn btn-secondary" onclick="showRegister()">
+              Register
+            </button>
+          </div>
+
+          <div id="loginForm" class="auth-form hidden">
+            <h3>Login</h3>
+            <form onsubmit="handleLogin(event)">
+              <input type="email" placeholder="Email" required />
+              <input type="password" placeholder="Password" required />
+              <button type="submit" class="btn btn-primary">Login</button>
+              <button
+                type="button"
+                class="btn btn-link"
+                onclick="hideAuthForms()"
+              >
+                Cancel
+              </button>
+            </form>
+          </div>
+
+          <div id="registerForm" class="auth-form hidden">
+            <h3>Register</h3>
+            <form onsubmit="handleRegister(event)">
+              <input type="text" placeholder="Full Name" required />
+              <input type="email" placeholder="Email" required />
+              <input type="password" placeholder="Password" required />
+              <input type="password" placeholder="Confirm Password" required />
+              <button type="submit" class="btn btn-primary">Register</button>
+              <button
+                type="button"
+                class="btn btn-link"
+                onclick="hideAuthForms()"
+              >
+                Cancel
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="scripts/auth.js"></script>
+  </body>
+</html>
