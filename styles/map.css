@@ -1,0 +1,486 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+}
+
+.app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 15px 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.app-logo {
+    font-size: 32px;
+}
+
+.app-name {
+    color: #667eea;
+    font-size: 1.5em;
+    font-weight: 600;
+}
+
+.header-right {
+    display: flex;
+    gap: 10px;
+}
+
+.icon-btn {
+    background: #f8f9fa;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 20px;
+}
+
+.icon-btn:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.search-container {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+    width: 90%;
+    max-width: 600px;
+}
+
+#searchInput {
+    flex: 1;
+    padding: 12px 20px;
+    border: 2px solid #ddd;
+    border-radius: 25px;
+    font-size: 1em;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#searchInput:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.search-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: all 0.3s ease;
+}
+
+.search-btn:hover {
+    background: #5568d3;
+    transform: scale(1.05);
+}
+
+#map {
+    width: 100%;
+    height: 100vh;
+    margin-top: 70px;
+}
+
+/* Custom Marker Styles */
+.bike-marker {
+    background: white;
+    border-radius: 50%;
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.marker-free {
+    background: #4caf50;
+    color: white;
+}
+
+.marker-paid {
+    background: #ff9800;
+    color: white;
+}
+
+.marker-covered {
+    background: #2196f3;
+    color: white;
+}
+
+.marker-secure {
+    background: #9c27b0;
+    color: white;
+}
+
+/* Tooltip Styles */
+.leaflet-tooltip {
+    background: white;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.9em;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip-content {
+    min-width: 200px;
+}
+
+.tooltip-title {
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 8px;
+    font-size: 1.1em;
+}
+
+.tooltip-info {
+    color: #555;
+    line-height: 1.6;
+}
+
+.tooltip-info strong {
+    color: #333;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s;
+}
+
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background-color: white;
+    margin: auto;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    position: relative;
+    animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    position: absolute;
+    right: 20px;
+    top: 20px;
+}
+
+.close:hover {
+    color: #667eea;
+}
+
+.modal-content h2 {
+    color: #667eea;
+    margin-bottom: 20px;
+    font-size: 2em;
+}
+
+.rules-explanation {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.rule-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    border-left: 4px solid #667eea;
+}
+
+.rule-section h3 {
+    color: #667eea;
+    margin-bottom: 10px;
+    font-size: 1.3em;
+}
+
+.rule-section p {
+    color: #555;
+    line-height: 1.6;
+}
+
+.help-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.step {
+    display: flex;
+    gap: 20px;
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    border-left: 4px solid #764ba2;
+}
+
+.step-number {
+    background: #667eea;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2em;
+    flex-shrink: 0;
+}
+
+.step-content h3 {
+    color: #667eea;
+    margin-bottom: 8px;
+    font-size: 1.2em;
+}
+
+.step-content p {
+    color: #555;
+    line-height: 1.6;
+}
+
+/* Legend Styles */
+.legend {
+    position: fixed;
+    bottom: 30px;
+    left: 20px;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    min-width: 180px;
+}
+
+.legend h3 {
+    color: #667eea;
+    font-size: 1.1em;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Location Modal */
+.location-modal {
+    max-width: 400px;
+    text-align: center;
+}
+
+.location-modal p {
+    color: #555;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.location-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.location-buttons .btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.location-buttons .btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.location-buttons .btn-primary:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+}
+
+.location-buttons .btn-secondary {
+    background: #764ba2;
+    color: white;
+}
+
+.location-buttons .btn-secondary:hover {
+    background: #653a8a;
+    transform: translateY(-2px);
+}
+
+/* Search Feedback */
+.search-feedback {
+    position: fixed;
+    top: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #667eea;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    font-size: 0.9em;
+    animation: slideDown 0.3s;
+}
+
+.search-feedback.hidden {
+    display: none;
+}
+
+.search-feedback.error {
+    background: #f44336;
+}
+
+.search-feedback.success {
+    background: #4caf50;
+}
+
+/* Routing Line Style */
+.leaflet-routing-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    position: fixed !important;
+    left: 20px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    right: auto !important;
+    bottom: auto !important;
+    max-width: 300px;
+    z-index: 1000;
+}
+
+.leaflet-routing-container .leaflet-routing-instructions {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .app-header {
+        padding: 10px 15px;
+    }
+
+    .app-name {
+        font-size: 1.2em;
+    }
+
+    .search-container {
+        width: 95%;
+        top: 60px;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+    }
+
+    .legend {
+        bottom: 10px;
+        left: 10px;
+        padding: 10px;
+        min-width: 150px;
+        font-size: 0.85em;
+    }
+
+    .legend h3 {
+        font-size: 1em;
+        margin-bottom: 8px;
+    }
+
+    .legend-item {
+        margin-bottom: 6px;
+    }
+
+    .legend-color {
+        width: 16px;
+        height: 16px;
+    }
+
+    .leaflet-routing-container {
+        left: 10px !important;
+        max-width: calc(100% - 20px);
+        font-size: 0.85em;
+    }
+}
