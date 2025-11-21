@@ -7,6 +7,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19
 }).addTo(map);
 
+const MAX_RECENT_LOCATIONS = 6;
 let userLocation = null;
 let userMarker = null;
 let routingControl = null;
@@ -14,8 +15,8 @@ let parkingMarkers = [];
 let selectedLocation = null;
 let isNavigating = false;
 let watchPositionId = null;
-let currentRoute = null;
-let navigationUI = null;
+let locationAccessGranted = false;
+let recentLocations = [];
 
 // Tilburg Central Station coordinates (default location)
 const TILBURG_CENTRAL_STATION = [51.5653, 5.0913];
@@ -29,55 +30,95 @@ if (!localStorage.getItem('userLoggedIn')) {
 const locationModal = document.getElementById('locationModal');
 const allowLocationBtn = document.getElementById('allowLocationBtn');
 const skipLocationBtn = document.getElementById('skipLocationBtn');
+const navigationModal = document.getElementById('navigationModal');
+const startLocationInput = document.getElementById('startLocationInput');
+const useCurrentBtn = document.getElementById('useCurrentBtn');
+const startNavBtn = document.getElementById('startNavBtn');
+const cancelNavBtn = document.getElementById('cancelNavBtn');
+const navigationUIContainer = document.getElementById('navigationUI');
+const navLocationNameEl = document.getElementById('navLocationName');
+const navLocationDetailsEl = document.getElementById('navLocationDetails');
+const navDestinationNameEl = document.getElementById('navDestinationName');
+const navDistanceEl = document.getElementById('navDistance');
+const navTimeEl = document.getElementById('navTime');
+const navInstructionTextEl = document.getElementById('navInstructionText');
+const navNextInstructionEl = document.getElementById('navNextInstruction');
+const recentModal = document.getElementById('recentModal');
+const recentBtn = document.getElementById('recentBtn');
+const recentListEl = document.getElementById('recentList');
+const clearRecentBtn = document.getElementById('clearRecentBtn');
 
-function requestUserLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                userLocation = [position.coords.latitude, position.coords.longitude];
-                map.setView(userLocation, 15);
-                
-                // Add user location marker
-                userMarker = L.marker(userLocation, {
-                    icon: L.divIcon({
-                        className: 'user-marker',
-                        html: '<div style="background: #667eea; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
-                        iconSize: [20, 20]
-                    })
-                }).addTo(map);
-                
-                locationModal.classList.remove('show');
-            },
-            function(error) {
-                console.error('Error getting location:', error);
-                // Use default location if permission denied
-                useDefaultLocation();
-            }
-        );
+function updateUserMarker(position) {
+    if (userMarker) {
+        userMarker.setLatLng(position);
     } else {
-        // Use default location if geolocation not supported
-        useDefaultLocation();
+        userMarker = L.marker(position, {
+            icon: L.divIcon({
+                className: 'user-marker',
+                html: '<div style="background: #667eea; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
+                iconSize: [20, 20]
+            })
+        }).addTo(map);
     }
 }
 
 function useDefaultLocation() {
-    userLocation = TILBURG_CENTRAL_STATION;
+    userLocation = TILBURG_CENTRAL_STATION.slice();
+    locationAccessGranted = false;
     map.setView(userLocation, 15);
-    
-    // Add user location marker at default location
-    userMarker = L.marker(userLocation, {
-        icon: L.divIcon({
-            className: 'user-marker',
-            html: '<div style="background: #667eea; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
-            iconSize: [20, 20]
-        })
-    }).addTo(map);
-    
+    updateUserMarker(userLocation);
     locationModal.classList.remove('show');
 }
 
-allowLocationBtn.addEventListener('click', requestUserLocation);
-skipLocationBtn.addEventListener('click', useDefaultLocation);
+async function requestUserLocation(showAlertOnFail = true) {
+    if (!navigator.geolocation) {
+        if (showAlertOnFail) {
+            alert('Geolocation is not supported by your browser. Using default location.');
+        }
+        useDefaultLocation();
+        return userLocation;
+    }
+
+    return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                locationAccessGranted = true;
+                userLocation = [position.coords.latitude, position.coords.longitude];
+                map.setView(userLocation, 15);
+                updateUserMarker(userLocation);
+                locationModal.classList.remove('show');
+                resolve(userLocation);
+            },
+            error => {
+                console.error('Error getting location:', error);
+                if (showAlertOnFail) {
+                    alert('Unable to access your location. Using default location.');
+                }
+                useDefaultLocation();
+                reject(error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 8000,
+                maximumAge: 0
+            }
+        );
+    });
+}
+
+allowLocationBtn.addEventListener('click', () => {
+    requestUserLocation();
+});
+skipLocationBtn.addEventListener('click', () => {
+    useDefaultLocation();
+});
+
+if (useCurrentBtn) {
+    useCurrentBtn.addEventListener('click', () => {
+        startLocationInput.value = '';
+        requestUserLocation(false);
+    });
+}
 
 // Add parking locations to map
 function addParkingLocations() {
@@ -272,6 +313,45 @@ function performSearch() {
     }
 }
 
+async function geocodeAddress(query) {
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`);
+        const data = await response.json();
+        if (data && data.length > 0) {
+            return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+    }
+    return null;
+}
+
+async function resolveStartLocation() {
+    const inputValue = startLocationInput.value.trim();
+
+    if (inputValue.length === 0) {
+        if (!userLocation) {
+            try {
+                await requestUserLocation(false);
+            } catch (error) {
+                console.warn('Using fallback location.');
+            }
+        }
+        if (!userLocation) {
+            useDefaultLocation();
+        }
+        return userLocation ? userLocation.slice() : TILBURG_CENTRAL_STATION.slice();
+    }
+
+    const geocoded = await geocodeAddress(inputValue);
+    if (geocoded) {
+        return geocoded;
+    }
+
+    alert('Unable to find the starting point. Please try another address or use your current location.');
+    return null;
+}
+
 // Modal functionality
 const rulesModal = document.getElementById('rulesModal');
 const helpModal = document.getElementById('helpModal');
@@ -305,200 +385,274 @@ document.querySelectorAll('.close').forEach(closeBtn => {
 window.addEventListener('click', function(event) {
     if (event.target.classList.contains('modal')) {
         event.target.classList.remove('show');
+        if (event.target.id === 'navigationModal') {
+            selectedLocation = null;
+            if (startLocationInput) {
+                startLocationInput.value = '';
+            }
+        }
     }
 });
 
 // Navigation prompt functionality
 function showNavigationPrompt(location) {
-    const navModal = document.getElementById('navigationModal');
-    const navLocationName = document.getElementById('navLocationName');
-    const navLocationDetails = document.getElementById('navLocationDetails');
-    
-    navLocationName.textContent = location.name;
-    navLocationDetails.innerHTML = `
+    if (!location) return;
+    selectedLocation = location;
+    navLocationNameEl.textContent = location.name;
+    navLocationDetailsEl.innerHTML = `
         <p><strong>Address:</strong> ${location.address}</p>
         <p><strong>Capacity:</strong> ${location.capacity} bikes</p>
         <p><strong>Cost:</strong> ${location.cost}</p>
         <p><strong>Type:</strong> ${location.type}</p>
     `;
-    
-    navModal.classList.add('show');
+    if (startLocationInput) {
+        startLocationInput.value = '';
+    }
+    addRecentLocation(location);
+    navigationModal.classList.add('show');
 }
 
 // Start live navigation
-function startNavigation() {
-    if (!selectedLocation || !userLocation) {
-        alert('Location not available. Please allow location access.');
+async function startNavigation() {
+    if (!selectedLocation) {
+        alert('Please select a bike parking location first.');
         return;
     }
 
-    isNavigating = true;
-    const navModal = document.getElementById('navigationModal');
-    navModal.classList.remove('show');
-    
-    // Show navigation UI
-    navigationUI = document.getElementById('navigationUI');
-    navigationUI.classList.remove('hidden');
-    document.getElementById('navDestinationName').textContent = selectedLocation.name;
-    
-    // Show initial route
-    showRoute(userLocation, [selectedLocation.lat, selectedLocation.lng]);
-    
-    // Setup route listener
-    setTimeout(() => {
-        setupRouteListener();
-        updateRouteInfo();
-    }, 500);
-    
-    // Start watching position for live updates
-    if (navigator.geolocation) {
-        watchPositionId = navigator.geolocation.watchPosition(
-            function(position) {
-                const newLocation = [position.coords.latitude, position.coords.longitude];
-                updateNavigation(newLocation);
-            },
-            function(error) {
-                console.error('Navigation position error:', error);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
-            }
-        );
+    try {
+        startNavBtn.disabled = true;
+        startNavBtn.textContent = 'Starting...';
+
+        const startPoint = await resolveStartLocation();
+        if (!startPoint) {
+            return;
+        }
+
+        userLocation = startPoint.slice();
+        map.setView(userLocation, 15);
+        updateUserMarker(userLocation);
+
+        isNavigating = true;
+        navigationModal.classList.remove('show');
+        navigationUIContainer.classList.remove('hidden');
+        navDestinationNameEl.textContent = selectedLocation.name;
+
+        showRoute(userLocation, [selectedLocation.lat, selectedLocation.lng]);
+
+        if (watchPositionId !== null && navigator.geolocation) {
+            navigator.geolocation.clearWatch(watchPositionId);
+            watchPositionId = null;
+        }
+
+        if (navigator.geolocation) {
+            watchPositionId = navigator.geolocation.watchPosition(
+                position => {
+                    locationAccessGranted = true;
+                    const newLocation = [position.coords.latitude, position.coords.longitude];
+                    updateNavigation(newLocation);
+                },
+                error => {
+                    console.error('Navigation position error:', error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 6000,
+                    maximumAge: 0
+                }
+            );
+        }
+    } catch (error) {
+        console.error('Unable to start navigation:', error);
+    } finally {
+        startNavBtn.disabled = false;
+        startNavBtn.textContent = 'Start Navigation';
     }
-    
-    // Update route periodically
-    updateRouteInfo();
 }
 
 // Update navigation with new position
 function updateNavigation(newLocation) {
     if (!isNavigating || !selectedLocation) return;
-    
-    userLocation = newLocation;
-    
-    // Update user marker position
-    if (userMarker) {
-        userMarker.setLatLng(newLocation);
-    } else {
-        userMarker = L.marker(newLocation, {
-            icon: L.divIcon({
-                className: 'user-marker',
-                html: '<div style="background: #667eea; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>',
-                iconSize: [20, 20]
-            })
-        }).addTo(map);
-    }
-    
+
+    userLocation = newLocation.slice();
+    updateUserMarker(newLocation);
+
     // Keep map centered on user during navigation
     map.setView(newLocation, 16);
-    
+
     // Update route
     showRoute(newLocation, [selectedLocation.lat, selectedLocation.lng]);
-    
-    // Update navigation info
-    updateRouteInfo();
 }
 
-// Update route information
-function updateRouteInfo() {
-    if (!routingControl || !isNavigating) return;
-    
-    // Get route data from routing control
-    if (routingControl._router && routingControl._router._routes) {
-        const routes = routingControl._router._routes;
-        if (routes && routes.length > 0) {
-            const route = routes[0];
-            if (route.summary) {
-                const distance = (route.summary.totalDistance / 1000).toFixed(1); // Convert to km
-                const time = Math.round(route.summary.totalTime / 60); // Convert to minutes
-                
-                document.getElementById('navDistance').textContent = `${distance} km`;
-                document.getElementById('navTime').textContent = `${time} min`;
-            }
-            
-            // Get current instruction
-            if (route.instructions && route.instructions.length > 0) {
-                const currentInstruction = route.instructions[0];
-                document.getElementById('navInstructionText').textContent = currentInstruction.text || 'Follow the route';
-                
-                // Show next instruction if available
-                if (route.instructions.length > 1) {
-                    document.getElementById('navNextInstruction').textContent = 
-                        `Next: ${route.instructions[1].text || ''}`;
-                } else {
-                    document.getElementById('navNextInstruction').textContent = 'Arriving at destination';
-                }
-            }
+function updateRouteUI(route) {
+    if (!route) return;
+
+    if (route.summary) {
+        const distance = (route.summary.totalDistance / 1000).toFixed(1);
+        const time = Math.round(route.summary.totalTime / 60);
+        navDistanceEl.textContent = `${distance} km`;
+        navTimeEl.textContent = `${time} min`;
+    }
+
+    if (route.instructions && route.instructions.length > 0) {
+        navInstructionTextEl.textContent = route.instructions[0].text || 'Follow the route';
+        if (route.instructions.length > 1) {
+            navNextInstructionEl.textContent = `Next: ${route.instructions[1].text || ''}`;
+        } else {
+            navNextInstructionEl.textContent = 'Arriving at destination';
         }
     }
 }
 
-// Listen for route updates
-function setupRouteListener() {
-    if (routingControl) {
-        routingControl.on('routesfound', function(e) {
-            if (isNavigating && e.routes && e.routes.length > 0) {
-                const route = e.routes[0];
-                const distance = (route.summary.totalDistance / 1000).toFixed(1);
-                const time = Math.round(route.summary.totalTime / 60);
-                
-                document.getElementById('navDistance').textContent = `${distance} km`;
-                document.getElementById('navTime').textContent = `${time} min`;
-                
-                if (route.instructions && route.instructions.length > 0) {
-                    document.getElementById('navInstructionText').textContent = 
-                        route.instructions[0].text || 'Follow the route';
-                    
-                    if (route.instructions.length > 1) {
-                        document.getElementById('navNextInstruction').textContent = 
-                            `Next: ${route.instructions[1].text || ''}`;
-                    } else {
-                        document.getElementById('navNextInstruction').textContent = 'Arriving at destination';
-                    }
-                }
-            }
-        });
+function handleRoutesFound(e) {
+    if (!isNavigating) return;
+    if (e.routes && e.routes.length > 0) {
+        updateRouteUI(e.routes[0]);
     }
+}
+
+function setupRouteListener() {
+    if (!routingControl) return;
+    routingControl.off('routesfound', handleRoutesFound);
+    routingControl.on('routesfound', handleRoutesFound);
 }
 
 // Stop navigation
 function stopNavigation() {
     isNavigating = false;
-    
+
     if (watchPositionId !== null && navigator.geolocation) {
         navigator.geolocation.clearWatch(watchPositionId);
         watchPositionId = null;
     }
-    
-    if (navigationUI) {
-        navigationUI.classList.add('hidden');
-    }
-    
+
+    navigationUIContainer.classList.add('hidden');
+
     if (routingControl) {
         map.removeControl(routingControl);
         routingControl = null;
     }
-    
+
+    if (startLocationInput) {
+        startLocationInput.value = '';
+    }
+
     selectedLocation = null;
 }
 
+// Recent locations
+function addRecentLocation(location) {
+    if (!location) return;
+    const existsIndex = recentLocations.findIndex(
+        item => item.name === location.name && item.address === location.address
+    );
+    if (existsIndex !== -1) {
+        recentLocations.splice(existsIndex, 1);
+    }
+    recentLocations.unshift({ ...location, timestamp: Date.now() });
+    if (recentLocations.length > MAX_RECENT_LOCATIONS) {
+        recentLocations.pop();
+    }
+    renderRecentList();
+}
+
+function formatRelativeTime(timestamp) {
+    const diff = Date.now() - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes} min${minutes > 1 ? 's' : ''} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hr${hours > 1 ? 's' : ''} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
+function renderRecentList() {
+    if (!recentListEl) return;
+    recentListEl.innerHTML = '';
+
+    if (recentLocations.length === 0) {
+        recentListEl.innerHTML = '<p class="recent-empty">No recent locations yet.</p>';
+        return;
+    }
+
+    recentLocations.forEach(location => {
+        const item = document.createElement('div');
+        item.className = 'recent-item';
+
+        const info = document.createElement('div');
+        info.className = 'recent-info';
+
+        const name = document.createElement('div');
+        name.className = 'recent-name';
+        name.textContent = location.name;
+
+        const address = document.createElement('div');
+        address.className = 'recent-address';
+        address.textContent = location.address;
+
+        const type = document.createElement('div');
+        type.className = 'recent-type';
+        type.textContent = `${location.type} • Capacity: ${location.capacity}`;
+
+        info.appendChild(name);
+        info.appendChild(address);
+        info.appendChild(type);
+
+        const timeEl = document.createElement('div');
+        timeEl.className = 'recent-time';
+        timeEl.textContent = formatRelativeTime(location.timestamp);
+
+        item.appendChild(info);
+        item.appendChild(timeEl);
+
+        item.addEventListener('click', () => {
+            recentModal.classList.remove('show');
+            selectedLocation = location;
+            showNavigationPrompt(location);
+        });
+
+        recentListEl.appendChild(item);
+    });
+}
+
 // Navigation modal event handlers
-document.getElementById('startNavBtn').addEventListener('click', startNavigation);
-document.getElementById('cancelNavBtn').addEventListener('click', function() {
-    document.getElementById('navigationModal').classList.remove('show');
-    selectedLocation = null;
+startNavBtn.addEventListener('click', () => {
+    startNavigation();
 });
+
+cancelNavBtn.addEventListener('click', () => {
+    navigationModal.classList.remove('show');
+    selectedLocation = null;
+    if (startLocationInput) {
+        startLocationInput.value = '';
+    }
+});
+
 document.getElementById('stopNavBtn').addEventListener('click', stopNavigation);
 
-// Close navigation modal when clicking X
 document.querySelectorAll('#navigationModal .close').forEach(closeBtn => {
-    closeBtn.addEventListener('click', function() {
-        document.getElementById('navigationModal').classList.remove('show');
+    closeBtn.addEventListener('click', () => {
+        navigationModal.classList.remove('show');
         selectedLocation = null;
+        if (startLocationInput) {
+            startLocationInput.value = '';
+        }
     });
 });
+
+if (recentBtn) {
+    recentBtn.addEventListener('click', () => {
+        renderRecentList();
+        recentModal.classList.add('show');
+    });
+}
+
+if (clearRecentBtn) {
+    clearRecentBtn.addEventListener('click', () => {
+        recentLocations = [];
+        renderRecentList();
+    });
+}
 
 // Initialize parking locations
 addParkingLocations();
