@@ -22,6 +22,9 @@
         <button class="icon-btn" id="rulesBtn" title="AFAC Rules">
           <span class="icon">📋</span>
         </button>
+        <button class="icon-btn" id="recentBtn" title="Recent Locations">
+          <span class="icon">🕒</span>
+        </button>
         <button class="icon-btn" id="helpBtn" title="Help">
           <span class="icon">❓</span>
         </button>
@@ -91,6 +94,22 @@
         <span class="close">&times;</span>
         <h2 id="navLocationName">Start Navigation</h2>
         <div id="navLocationDetails" class="nav-location-details"></div>
+        <div class="start-location">
+          <label for="startLocationInput">Starting Point</label>
+          <div class="start-input-group">
+            <input
+              type="text"
+              id="startLocationInput"
+              placeholder="Use current location or enter an address"
+            />
+            <button type="button" class="btn btn-small" id="useCurrentBtn">
+              Use Current
+            </button>
+          </div>
+          <small class="start-help">
+            Leave empty to use your current or default location.
+          </small>
+        </div>
         <div class="nav-buttons">
           <button class="btn btn-primary" id="startNavBtn">
             Start Navigation
@@ -223,6 +242,17 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div id="recentModal" class="modal">
+      <div class="modal-content recent-modal">
+        <span class="close">&times;</span>
+        <h2>Recent Locations</h2>
+        <div id="recentList" class="recent-list">
+          <p class="recent-empty">No recent locations yet.</p>
+        </div>
+        <button class="btn btn-link" id="clearRecentBtn">Clear Recent</button>
       </div>
     </div>
 
