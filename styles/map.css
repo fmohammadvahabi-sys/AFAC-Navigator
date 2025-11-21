@@ -412,6 +412,58 @@ body {
     color: #667eea;
 }
 
+.start-location {
+    margin: 20px 0;
+}
+
+.start-location label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.start-input-group {
+    display: flex;
+    gap: 10px;
+}
+
+.start-input-group input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+.start-input-group input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.btn-small {
+    padding: 10px 15px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s;
+}
+
+.btn-small:hover {
+    background: #5568d3;
+}
+
+.start-help {
+    display: block;
+    color: #777;
+    font-size: 0.85em;
+    margin-top: 6px;
+}
+
 .nav-buttons {
     display: flex;
     gap: 15px;
@@ -542,6 +594,77 @@ body {
     margin-top: 10px;
 }
 
+/* Recent Locations Modal */
+.recent-modal {
+    max-width: 450px;
+}
+
+.recent-list {
+    max-height: 320px;
+    overflow-y: auto;
+    margin: 20px 0;
+}
+
+.recent-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.recent-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.recent-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.recent-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.recent-address {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.recent-type {
+    font-size: 0.85em;
+    color: #999;
+}
+
+.recent-time {
+    font-size: 0.85em;
+    color: #667eea;
+    margin-left: 10px;
+}
+
+.recent-empty {
+    text-align: center;
+    color: #777;
+}
+
+.btn-link {
+    background: transparent;
+    border: none;
+    color: #667eea;
+    cursor: pointer;
+    font-size: 0.95em;
+    text-decoration: underline;
+    margin: 0 auto;
+    display: block;
+}
+
 /* Search Feedback */
 .search-feedback {
     position: fixed;
@@ -643,5 +766,13 @@ body {
         left: 10px;
         max-width: calc(100% - 20px);
         min-width: auto;
+    }
+
+    .start-input-group {
+        flex-direction: column;
+    }
+
+    .btn-small {
+        width: 100%;
     }
 }
